@@ -272,6 +272,8 @@ def test_interrupt_uses_current_execution_stamp_and_model_confirmation_uses_owne
     assert wire.calls[-1][0] == "session.mutate"
     assert wire.calls[-1][1]["expected_revision"] == 4
     assert wire.calls[-1][1]["payload"] == {"model": "model-a", "confirm": "owner-token"}
+    # Hermes refuses a model mutation without the execution fence as invalid_params.
+    assert wire.calls[-1][1]["expected_generation"] == 7
 
 
 def test_bootstrap_grant_stays_private_and_legacy_fallback_is_only_for_missing_helper(monkeypatch):

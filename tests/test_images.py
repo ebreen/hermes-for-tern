@@ -2,6 +2,9 @@ import base64
 import io
 import json
 import os
+import shutil
+import subprocess
+import sys
 import time
 
 import pytest
@@ -10,7 +13,7 @@ from tern_sdk import Key
 
 from hermes_for_tern.delivery import ImageDelivery
 from hermes_for_tern.editor import Draft
-from hermes_for_tern.images import RETENTION, ImageStore, clipboard_image, dropped_image_path
+from hermes_for_tern.images import MACOS_CLIPBOARD_SCRIPT, RETENTION, ImageStore, clipboard_image, dropped_image_path
 from hermes_for_tern.messages import ImageRef, Message
 from hermes_for_tern.recovery import RecoveryStore
 from test_app import FakeBackend, app
@@ -615,3 +618,13 @@ def test_clipboard_failure_messages_point_to_attach_command(monkeypatch, failure
         monkeypatch.setattr("hermes_for_tern.images.subprocess.Popen", unavailable)
     with pytest.raises(ValueError, match="/attach <path>"):
         clipboard_image(1 << 20)
+
+
+@pytest.mark.skipif(sys.platform != "darwin" or not shutil.which("osacompile"), reason="needs macOS osacompile")
+def test_macos_clipboard_script_compiles(tmp_path):
+    """The tests stub the clipboard reader, so compile the real AppleScript (issue #33)."""
+    result = subprocess.run(
+        ["osacompile", "-o", str(tmp_path / "clip.scpt"), "-e", MACOS_CLIPBOARD_SCRIPT],
+        capture_output=True, text=True, timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
