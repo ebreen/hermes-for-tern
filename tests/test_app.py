@@ -823,3 +823,17 @@ def test_a_new_session_offers_the_last_one_on_the_welcome():
     )
     node.handlers["action:click"](None)
     assert picked == ["20261010_ci"]
+
+
+def test_pane_title_follows_session_name_once_per_change():
+    written = []
+    instance = App(
+        SimpleNamespace(caps=SimpleNamespace(cols=100), write=written.append), [], Path("/project"), {}
+    )
+    instance.update_pane_title()
+    instance.update_pane_title()
+    assert written == [b"\x1b]2;Hermes\x07"]
+    instance.state.title = "Tern tab\x1b]0;evil\x07 titles"
+    instance.update_pane_title()
+    assert written[-1] == "\x1b]2;Hermes · Tern tab]0;evil titles\x07".encode()
+    assert len(written) == 2

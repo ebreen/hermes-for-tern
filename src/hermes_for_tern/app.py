@@ -91,6 +91,7 @@ class App(Attachments, Commands, Sheets, Sessions, Recovery):
         self._retired: list[threading.Thread] = []
         self.gateway: dict = {}
         self.uncertain_work = False
+        self.pane_title: str | None = None
         self.init_images()
 
     def request(self, method: str, params: dict | None = None) -> Future:
@@ -188,8 +189,25 @@ class App(Attachments, Commands, Sheets, Sessions, Recovery):
             print(hint, flush=True)
         return 1 if self.state.failed else 0
 
+    def pane_title_text(self) -> str:
+        """The tab/pane title: the session's name, so Tern's tab bar tells Hermes panes apart."""
+        name = " ".join("".join(ch for ch in self.state.title if ch.isprintable()).split())[:80]
+        return f"Hermes · {name}" if name else "Hermes"
+
+    def update_pane_title(self) -> None:
+        """Sets the pane title (OSC 2) when the session name changes; Tern shows it as the tab name."""
+        title = self.pane_title_text()
+        if title == self.pane_title or not hasattr(self.session, "write"):
+            return
+        self.pane_title = title
+        try:
+            self.session.write(f"\x1b]2;{title}\x07".encode())
+        except OSError:
+            pass
+
     def render(self) -> None:
         assert self.surface
+        self.update_pane_title()
         self.surface.render(
             view(
                 self.state,
